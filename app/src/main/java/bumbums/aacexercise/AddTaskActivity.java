@@ -24,7 +24,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
 
-import com.example.android.todolist.database.TaskEntry;
+import bumbums.aacexercise.database.TaskEntry;
 
 
 public class AddTaskActivity extends AppCompatActivity {

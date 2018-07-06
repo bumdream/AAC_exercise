@@ -25,11 +25,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.example.android.todolist.database.TaskEntry;
 
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
+
+import bumbums.aacexercise.database.TaskEntry;
 
 /**
  * This TaskAdapter creates and binds ViewHolders, that hold the description and priority of a task,
