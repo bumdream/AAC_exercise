@@ -1,14 +1,23 @@
 package bumbums.aacexercise.database;
 
+import android.arch.persistence.room.ColumnInfo;
+import android.arch.persistence.room.Entity;
+import android.arch.persistence.room.Ignore;
+import android.arch.persistence.room.PrimaryKey;
+
 import java.util.Date;
 
+@Entity(tableName = "task")
 public class TaskEntry {
 
+    @PrimaryKey(autoGenerate = true)
     private int id;
     private String description;
     private int priority;
+    @ColumnInfo(name = "updated_at")
     private Date updatedAt;
 
+    @Ignore
     public TaskEntry(String description, int priority, Date updatedAt) {
         this.description = description;
         this.priority = priority;

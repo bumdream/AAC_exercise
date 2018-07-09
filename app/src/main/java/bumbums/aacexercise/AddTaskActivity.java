@@ -19,11 +19,15 @@ package bumbums.aacexercise;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
 
+import java.util.Date;
+
+import bumbums.aacexercise.database.AppDatabase;
 import bumbums.aacexercise.database.TaskEntry;
 
 
@@ -48,11 +52,21 @@ public class AddTaskActivity extends AppCompatActivity {
 
     private int mTaskId = DEFAULT_TASK_ID;
 
+    private AppDatabase mDb;
+
+    @Override
+    protected void onResume() {
+        mDb = AppDatabase.getInstance(getApplicationContext());
+        super.onResume();
+    }
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_task);
 
         initViews();
+
+        mDb = AppDatabase.getInstance(getApplicationContext());
 
         if (savedInstanceState != null && savedInstanceState.containsKey(INSTANCE_TASK_ID)) {
             mTaskId = savedInstanceState.getInt(INSTANCE_TASK_ID, DEFAULT_TASK_ID);
@@ -63,8 +77,25 @@ public class AddTaskActivity extends AppCompatActivity {
             mButton.setText(R.string.update_button);
             if (mTaskId == DEFAULT_TASK_ID) {
                 // populate the UI
+                mTaskId = intent.getIntExtra(EXTRA_TASK_ID,DEFAULT_TASK_ID);
+                Log.d(TAG, "mTaskId:"+mTaskId);
+                AppExecutors.getInstance().getDiskIO().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        final TaskEntry taskEntry = mDb.taskDao().loadTaskById(mTaskId);
+
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                populateUI(taskEntry);
+
+                            }
+                        });
+                    }
+                });
             }
         }
+
     }
 
     @Override
@@ -95,7 +126,11 @@ public class AddTaskActivity extends AppCompatActivity {
      * @param task the taskEntry to populate the UI
      */
     private void populateUI(TaskEntry task) {
+        if(task == null)
+            return;
 
+        mEditText.setText(task.getDescription());
+        setPriorityInViews(task.getPriority());
     }
 
     /**
@@ -104,6 +139,23 @@ public class AddTaskActivity extends AppCompatActivity {
      */
     public void onSaveButtonClicked() {
         // Not yet implemented
+        String description = mEditText.getText().toString();
+        int priority = getPriorityFromViews();
+        Date date = new Date();
+        final TaskEntry taskEntry = new TaskEntry(description,priority,date);
+        AppExecutors.getInstance().getDiskIO().execute(new Runnable() {
+            @Override
+            public void run() {
+                if(mTaskId == DEFAULT_TASK_ID)
+                    mDb.taskDao().insertTask(taskEntry);
+                else {
+                    taskEntry.setId(mTaskId);
+                    mDb.taskDao().updateTask(taskEntry);
+                }
+                finish();
+            }
+        });
+
     }
 
     /**

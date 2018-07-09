@@ -1,5 +1,8 @@
 package bumbums.aacexercise;
 
+import android.arch.lifecycle.LiveData;
+import android.arch.lifecycle.Observer;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.content.Intent;
@@ -10,7 +13,13 @@ import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.util.Log;
 import android.view.View;
+
+import java.util.List;
+
+import bumbums.aacexercise.database.AppDatabase;
+import bumbums.aacexercise.database.TaskEntry;
 
 import static android.support.v7.widget.DividerItemDecoration.VERTICAL;
 
@@ -23,6 +32,7 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
     private RecyclerView mRecyclerView;
     private TaskAdapter mAdapter;
 
+    private AppDatabase mDb;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,7 +65,15 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
 
             // Called when a user swipes left or right on a ViewHolder
             @Override
-            public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
+            public void onSwiped(final RecyclerView.ViewHolder viewHolder, int swipeDir) {
+                AppExecutors.getInstance().getDiskIO().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        int position = viewHolder.getAdapterPosition();
+                        List<TaskEntry> tasks = mAdapter.getTasks();
+                        mDb.taskDao().deleteTask(tasks.get(position));
+                    }
+                });
                 // Here is where you'll implement swipe to delete
             }
         }).attachToRecyclerView(mRecyclerView);
@@ -75,10 +93,35 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
                 startActivity(addTaskIntent);
             }
         });
+
+        mDb = AppDatabase.getInstance(getApplicationContext());
+        retrieveTasks();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+    private void retrieveTasks() {
+        Log.d(TAG, "Actively retrieving the tasks from the Database");
+        //LiveData 를 사용하기 때문에 Ui-thread 외부에서 접근하게 되므로 Executor 가 필요없다.
+        final LiveData<List<TaskEntry>> tasks = mDb.taskDao().loadAllTask();
+        tasks.observe(MainActivity.this, new Observer<List<TaskEntry>>() {
+            //onChanged 메소드는 ui-thread 에서 실행된다.
+            @Override
+            public void onChanged(@Nullable List<TaskEntry> taskEntries) {
+                Log.d(TAG, "Receiving database update from LiveData.");
+                mAdapter.setTasks(taskEntries);
+            }
+        });
     }
 
     @Override
     public void onItemClickListener(int itemId) {
         // Launch AddTaskActivity adding the itemId as an extra in the intent
+        Intent intent = new Intent(MainActivity.this, AddTaskActivity.class);
+        intent.putExtra(AddTaskActivity.EXTRA_TASK_ID,itemId);
+        startActivity(intent);
     }
 }
