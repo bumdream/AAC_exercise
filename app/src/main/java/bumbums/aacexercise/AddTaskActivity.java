@@ -16,8 +16,11 @@
 
 package bumbums.aacexercise;
 
+import android.arch.lifecycle.LiveData;
+import android.arch.lifecycle.Observer;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -78,19 +81,13 @@ public class AddTaskActivity extends AppCompatActivity {
             if (mTaskId == DEFAULT_TASK_ID) {
                 // populate the UI
                 mTaskId = intent.getIntExtra(EXTRA_TASK_ID,DEFAULT_TASK_ID);
-                Log.d(TAG, "mTaskId:"+mTaskId);
-                AppExecutors.getInstance().getDiskIO().execute(new Runnable() {
+                final LiveData<TaskEntry> task = mDb.taskDao().loadTaskById(mTaskId);
+                task.observe(AddTaskActivity.this, new Observer<TaskEntry>() {
                     @Override
-                    public void run() {
-                        final TaskEntry taskEntry = mDb.taskDao().loadTaskById(mTaskId);
-
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                populateUI(taskEntry);
-
-                            }
-                        });
+                    public void onChanged(@Nullable TaskEntry taskEntry) {
+                        task.removeObserver(this);
+                        Log.d(TAG,"Receiving database update from LiveData");
+                        populateUI(taskEntry);
                     }
                 });
             }
