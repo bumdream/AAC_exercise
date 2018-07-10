@@ -1,14 +1,12 @@
 package bumbums.aacexercise;
 
-import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModelProviders;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.content.Intent;
-import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -95,7 +93,7 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
         });
 
         mDb = AppDatabase.getInstance(getApplicationContext());
-        retrieveTasks();
+        setupViewModel();
     }
 
     @Override
@@ -103,15 +101,13 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
         super.onResume();
     }
 
-    private void retrieveTasks() {
-        Log.d(TAG, "Actively retrieving the tasks from the Database");
-        //LiveData 를 사용하기 때문에 Ui-thread 외부에서 접근하게 되므로 Executor 가 필요없다.
-        final LiveData<List<TaskEntry>> tasks = mDb.taskDao().loadAllTask();
-        tasks.observe(MainActivity.this, new Observer<List<TaskEntry>>() {
+    private void setupViewModel() {
+        MainViewModel viewModel = ViewModelProviders.of(this).get(MainViewModel.class);
+        viewModel.getTasks().observe(MainActivity.this, new Observer<List<TaskEntry>>() {
             //onChanged 메소드는 ui-thread 에서 실행된다.
             @Override
             public void onChanged(@Nullable List<TaskEntry> taskEntries) {
-                Log.d(TAG, "Receiving database update from LiveData.");
+                Log.d(TAG, "Updating list of tasks from LiveData in ViewModel.");
                 mAdapter.setTasks(taskEntries);
             }
         });

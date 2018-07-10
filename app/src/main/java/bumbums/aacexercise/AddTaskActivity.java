@@ -18,6 +18,7 @@ package bumbums.aacexercise;
 
 import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModelProviders;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -30,6 +31,8 @@ import android.widget.RadioGroup;
 
 import java.util.Date;
 
+import bumbums.aacexercise.database.AddTaskViewModel;
+import bumbums.aacexercise.database.AddTaskViewModelFactory;
 import bumbums.aacexercise.database.AppDatabase;
 import bumbums.aacexercise.database.TaskEntry;
 
@@ -81,11 +84,14 @@ public class AddTaskActivity extends AppCompatActivity {
             if (mTaskId == DEFAULT_TASK_ID) {
                 // populate the UI
                 mTaskId = intent.getIntExtra(EXTRA_TASK_ID,DEFAULT_TASK_ID);
-                final LiveData<TaskEntry> task = mDb.taskDao().loadTaskById(mTaskId);
-                task.observe(AddTaskActivity.this, new Observer<TaskEntry>() {
+
+                AddTaskViewModelFactory factory = new AddTaskViewModelFactory(mDb,mTaskId);
+                final AddTaskViewModel viewModel =
+                        ViewModelProviders.of(this,factory).get(AddTaskViewModel.class);
+                viewModel.getTask().observe(AddTaskActivity.this, new Observer<TaskEntry>() {
                     @Override
                     public void onChanged(@Nullable TaskEntry taskEntry) {
-                        task.removeObserver(this);
+                        viewModel.getTask().removeObserver(this);
                         Log.d(TAG,"Receiving database update from LiveData");
                         populateUI(taskEntry);
                     }
